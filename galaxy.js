@@ -160,6 +160,14 @@ class Ship {
         context.lineTo(screenPos.x + xFromDegree(this.direction + 150) * shipSize * GameArea.scale, screenPos.y + yFromDegree(this.direction + 150) * shipSize * GameArea.scale);
         context.lineTo(screenPos.x + xFromDegree(this.direction + 210) * shipSize * GameArea.scale, screenPos.y + yFromDegree(this.direction + 210) * shipSize * GameArea.scale);
         context.fill();
+
+        if(GameArea.scale<0.1){
+            context.shadowBlur = 2;
+            context.beginPath();
+            context.arc(screenPos.x, screenPos.y, 5, 0, 2 * Math.PI);
+            context.strokeStyle = "lightblue";
+            context.stroke();
+        }
         context.shadowBlur = 0;
     }
 }
@@ -201,7 +209,7 @@ class Planet {
 }
 
 class SolarSystem {
-    constructor(x, y, radius, starType, planets = []) {
+    constructor(x, y, radius, starType, name="", planets = []) {
         this.x = x;
         this.y = y;
         this.discovered = false;
@@ -210,7 +218,8 @@ class SolarSystem {
         starCount[starType]++;
         this.radius = rand(starTypes[starType].minSize * sunSize, starTypes[starType].maxSize * sunSize);
         this.planets = planets;
-        this.name = String.fromCharCode(rand(65, 90)) + String.fromCharCode(rand(65, 90)) + "-" + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57));
+        this.name = name;
+        if(this.name == "")this.name = String.fromCharCode(rand(65, 90)) + String.fromCharCode(rand(65, 90)) + "-" + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57));
         if (planets.length == 0) {
             var amount = rand(1, 9);
             for (var k = 0; k < amount; k++) {
@@ -266,17 +275,21 @@ function init() {
     }
 
 
-    /*plans = [];
-    plans2 = [];
-    plans[0] = new Planet(100, 5, "green", 5, 180);
-    plans[1] = new Planet(200, 10, "red", 8, 90);
-    plans2[0] = new Planet(100, 5, "blue", 5, 180);
-    plans2[1] = new Planet(200, 10, "yellow", 8, 90);*/
+    plans = [];
+    plans.push(new Planet(300 , 20, "yellow", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(500 , 20, "red", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(700 , 50, "blue", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(900 , 40, "red", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1100 , 80, "brown", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1300 , 70, "orange", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1500 , 40, "brown", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1700 , 40, "blue", rand(20, 60), rand(1, 360)));
     /*for(var s1 = 0; s1<10; s1++){
         for(var s2 = 0; s2 < 10; s2++){
             systems.push(new SolarSystem(s1*4000, s2*4000, rand(30, 70), "yellow"));
         }    
     }*/
+    systems.push(new SolarSystem(-550, -550, 100, 4, "Sol", plans));
     for (var s = 0; s < 1000; s++) {
         aDegree = rand(0, 359);
         aDistance = rand(1000, 200000);
