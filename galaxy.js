@@ -18,6 +18,7 @@ let currentSystem = null;
 let previousSystem = null;
 let shipSize = 5;
 var gp;
+let backgroundStars = [];
 var colors = ["green", "darkblue", "brown", "orange", "cyan", "purple"];
 var starTypes = [
     { "type": "O", "color": "blue", "minSize": 6.6, "maxSize": 10 },
@@ -239,7 +240,7 @@ class SolarSystem {
         context.shadowColor = starTypes[this.starType].color;
         context.fill();
         context.shadowBlur = 0;
-        if (GameArea.scale > 0.03) {
+        if (GameArea.scale > 0.02) {
             for (var j = 0; j < this.planets.length; j++) {
                 this.planets[j].update(this.x, this.y, timePassed);
             }
@@ -256,11 +257,13 @@ function init() {
     context = canvas.getContext("2d");
     document.body.insertBefore(canvas, document.body.childNodes[0]);
 
-    /*canvas = document.getElementById('canvas');
-    context = canvas.getContext('2d');
-    debug(canvas.getBoundingClientRect().width + ", " + canvas.getBoundingClientRect().height);
-    canvas.width = canvas.getBoundingClientRect().width;
-    canvas.height = canvas.getBoundingClientRect().height;*/
+    //background
+    for(var i = 0; i< 2000; i++){
+        var starArr = [];
+        starArr[0] = rand(0, canvas.width*2)-canvas.width/2;
+        starArr[1] = rand(0, canvas.height)*2-canvas.height/2;
+        backgroundStars.push(starArr);
+    }
 
 
     /*plans = [];
@@ -360,6 +363,10 @@ function gameLoop(timeStamp) {
     if (isNaN(secondsPassed)) secondsPassed = 0;
     oldTimeStamp = timeStamp;
     context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "white";
+    for(var i = 0;i<backgroundStars.length;i++){
+        context.fillRect(backgroundStars[i][0]-(GameArea.x/1000), backgroundStars[i][1]-(GameArea.y/1000), 0.5, 0.5);
+    }
 
     GameArea.x = ship.x;
     GameArea.y = ship.y;
