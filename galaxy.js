@@ -44,27 +44,40 @@ class Laser {
         this.speedX = speedX;
         this.speedY = speedY;
         this.created = totalTime;
+        this.active = true;
     }
 
     update(timePassed) {
-        if (currentSystem != null) {
-            for (var z = 0; z < currentSystem.planets.length; z++) {
-                var pl = currentSystem.planets[z];
-                var dX = Math.abs(this.x - pl.x);
-                var dY = Math.abs(this.y - pl.y);
-                var dist = Math.sqrt(dX * dX + dY * dY);
-                if (dist < pl.radius) pl.destroyed = true;
+        if (this.active) {
+            if (currentSystem != null) {
+                for (var z = 0; z < currentSystem.planets.length; z++) {
+                    var pl = currentSystem.planets[z];
+                    var dX = Math.abs(this.x - pl.x);
+                    var dY = Math.abs(this.y - pl.y);
+                    var dist = Math.sqrt(dX * dX + dY * dY);
+                    if (dist < pl.radius) {
+                        this.active = false;
+                        pl.health-=1;
+                        if(pl.health<=0)currentSystem.planets.splice(z, 1);
+                    }
+                }
+                    var dX = Math.abs(this.x - currentSystem.x);
+                    var dY = Math.abs(this.y - currentSystem.y);
+                    var dist = Math.sqrt(dX * dX + dY * dY);
+                    if (dist < currentSystem.radius) {
+                        this.active = false;
+                    }
             }
+            this.x += this.speedX;
+            this.y += this.speedY;
+
+            var screenPos = worldToScreen(this.x, this.y);
+
+            context.beginPath();
+            context.fillStyle = "#fff";
+            context.fillRect(screenPos.x - 1 * GameArea.scale, screenPos.y - 1 * GameArea.scale, 2 * GameArea.scale, 2 * GameArea.scale);
+            if ((totalTime - this.created) > 2000) lasers.shift();
         }
-        this.x += this.speedX;
-        this.y += this.speedY;
-
-        var screenPos = worldToScreen(this.x, this.y);
-
-        context.beginPath();
-        context.fillStyle = "#fff";
-        context.fillRect(screenPos.x - 1 * GameArea.scale, screenPos.y - 1 * GameArea.scale, 2 * GameArea.scale, 2 * GameArea.scale);
-        if ((totalTime - this.created) > 2000) lasers.shift();
     }
 }
 
@@ -160,6 +173,7 @@ class Planet {
         this.y = 0;
         this.degree = degree;
         this.destroyed = false;
+        this.health = this.radius;
     }
 
     update(starX, starY, timePassed) {
