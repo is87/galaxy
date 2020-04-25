@@ -75,7 +75,7 @@ class Laser {
             var screenPos = worldToScreen(this.x, this.y);
 
             context.beginPath();
-            context.fillStyle = "#fff";
+            context.fillStyle = "#f00";
             context.fillRect(screenPos.x - 1 * GameArea.scale, screenPos.y - 1 * GameArea.scale, 2 * GameArea.scale, 2 * GameArea.scale);
             if ((totalTime - this.created) > 2000) lasers.shift();
         }
@@ -161,10 +161,14 @@ class Ship {
         context.lineTo(screenPos.x + xFromDegree(this.direction + 210) * shipSize * GameArea.scale, screenPos.y + yFromDegree(this.direction + 210) * shipSize * GameArea.scale);
         context.fill();
 
-        if (GameArea.scale < 0.1) {
+        if (GameArea.scale < 0.3) {
             context.shadowBlur = 2;
             context.beginPath();
-            context.arc(screenPos.x, screenPos.y, 5, 0, 2 * Math.PI);
+            //context.arc(screenPos.x, screenPos.y, 5, 0, 2 * Math.PI);
+            context.moveTo(screenPos.x + xFromDegree(this.direction + 0) * 5, screenPos.y + yFromDegree(this.direction + 0) * 5);
+            context.lineTo(screenPos.x + xFromDegree(this.direction + 150) * 5, screenPos.y + yFromDegree(this.direction + 150) * 5);
+            context.lineTo(screenPos.x + xFromDegree(this.direction + 210) * 5, screenPos.y + yFromDegree(this.direction + 210) * 5);
+            context.lineTo(screenPos.x + xFromDegree(this.direction + 0) * 5, screenPos.y + yFromDegree(this.direction + 0) * 5);
             context.strokeStyle = "lightblue";
             context.stroke();
         }
@@ -219,6 +223,9 @@ class Planet {
         this.destroyed = false;
         this.health = this.radius;
         this.satellites = [];
+        this.shield = false;
+        var hasShield = rand(1, 10);
+        if (hasShield == 10) this.shield = true;
     }
 
     update(starX, starY, timePassed) {
@@ -235,6 +242,16 @@ class Planet {
             context.arc(screenPosStar.x, screenPosStar.y, this.distance * GameArea.scale, 0, 2 * Math.PI);
             context.strokeStyle = "#222";
             context.stroke();
+
+            if (this.shield) {
+                context.shadowBlur = 5 * GameArea.scale;
+                context.shadowColor = "lightblue";
+                context.beginPath();
+                context.arc(screenPos.x, screenPos.y, (this.radius + 10) * GameArea.scale, 0, 2 * Math.PI);
+                context.strokeStyle = "lightblue";
+                context.stroke();
+                context.shadowBlur = 0;
+            }
 
             context.beginPath();
             context.arc(screenPos.x, screenPos.y, this.radius * GameArea.scale, 0, 2 * Math.PI, false);
@@ -533,8 +550,8 @@ function debug(info) {
 
 function checkButtons() {
     var gpYWasPressed = false;
-    if(gp != undefined){
-        if(gpY)gpYWasPressed = true;
+    if (gp != undefined) {
+        if (gpY) gpYWasPressed = true;
     }
     gpup = false;
     gpdown = false;
@@ -545,6 +562,7 @@ function checkButtons() {
     gpX = false;
     gpY = false;
     gpR = false;
+    gpR2 = false;
     gpL = false;
 
     if (gp != undefined) {
@@ -559,6 +577,7 @@ function checkButtons() {
         gpX = gp[0].buttons[3].pressed;
         gpL = gp[0].buttons[4].pressed;
         gpR = gp[0].buttons[5].pressed;
+        gpR2 = gp[0].buttons[7].pressed;
 
         if (previousSystem == null && currentSystem != null) {
             debug("new system");
@@ -599,7 +618,7 @@ function checkButtons() {
             ship.speedY = 0;
         }
     }
-    if (gpA) {
+    if (gpA || gpR2) {
         las = new Laser(ship.x, ship.y, ship.speedX + xFromDegree(ship.direction) * 5, ship.speedY + yFromDegree(ship.direction) * 5);
         lasers.push(las);
     }
@@ -607,7 +626,7 @@ function checkButtons() {
     if (gpY && gpYWasPressed == false) {
         if (currentSystem != null) {
             for (var i = 0; i < currentSystem.planets.length; i++) {
-                if(calculateDistance(ship, currentSystem.planets[i]) < (currentSystem.planets[i].radius + 50)){
+                if (calculateDistance(ship, currentSystem.planets[i]) < (currentSystem.planets[i].radius + 50)) {
                     currentSystem.planets[i].satellites.push(new Satellite(currentSystem.planets[i].radius + 20, 2, 5, 0));
                 }
             }
