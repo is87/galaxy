@@ -7,6 +7,7 @@ let fps;
 let systemsDrawn;
 let systems = [];
 let lasers = [];
+let latinCount = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 let sunSize = 100;
 let starCount = [0, 0, 0, 0, 0, 0, 0];
 let lastMessage = "";
@@ -61,7 +62,7 @@ class Laser {
                         this.active = false;
                         pl.health -= 1;
                         if (pl.health <= 0){
-                            lastMessage = currentSystem.name + " " + (z+1) + " destroyed";
+                            lastMessage = currentSystem.planets[z].name + " destroyed";
                             currentSystem.planets.splice(z, 1);
                         }
                     }
@@ -216,7 +217,7 @@ class Satellite {
 }
 
 class Planet {
-    constructor(distance, radius, planetType, yearLength, degree) {
+    constructor(distance, radius, planetType, yearLength, degree, name = "") {
         this.distance = distance;
         this.radius = radius;
         this.planetType = planetType;
@@ -224,6 +225,7 @@ class Planet {
         this.x = 0;
         this.y = 0;
         this.degree = degree;
+        this.name = name;
         this.destroyed = false;
         this.health = this.radius;
         this.satellites = [];
@@ -284,7 +286,7 @@ class SolarSystem {
         if (planets.length == 0) {
             var amount = rand(1, 9);
             for (var k = 0; k < amount; k++) {
-                planets.push(new Planet(200 * (k + 1) + this.radius, rand(10, 50), colors[rand(0, 5)], rand(20, 60), rand(1, 360)));
+                planets.push(new Planet(200 * (k + 1) + this.radius, rand(10, 50), colors[rand(0, 5)], rand(20, 60), rand(1, 360), this.name + " " + latinCount[k]));
             }
         }
     }
@@ -337,14 +339,14 @@ function init() {
 
 
     plans = [];
-    plans.push(new Planet(300, 20, "yellow", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(500, 20, "red", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(700, 50, "blue", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(900, 40, "red", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1100, 80, "brown", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1300, 70, "orange", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1500, 40, "brown", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1700, 40, "blue", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(300, 20, "yellow", rand(20, 60), rand(1, 360), "Mercury"));
+    plans.push(new Planet(500, 20, "red", rand(20, 60), rand(1, 360), "Venus"));
+    plans.push(new Planet(700, 50, "blue", rand(20, 60), rand(1, 360), "Earth"));
+    plans.push(new Planet(900, 40, "red", rand(20, 60), rand(1, 360), "Mars"));
+    plans.push(new Planet(1100, 80, "brown", rand(20, 60), rand(1, 360), "Jupiter"));
+    plans.push(new Planet(1300, 70, "orange", rand(20, 60), rand(1, 360), "Saturn"));
+    plans.push(new Planet(1500, 40, "brown", rand(20, 60), rand(1, 360), "Uranus"));
+    plans.push(new Planet(1700, 40, "blue", rand(20, 60), rand(1, 360), "Neptune"));
     /*for(var s1 = 0; s1<10; s1++){
         for(var s2 = 0; s2 < 10; s2++){
             systems.push(new SolarSystem(s1*4000, s2*4000, rand(30, 70), "yellow"));
