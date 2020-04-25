@@ -58,16 +58,16 @@ class Laser {
                     var dist = Math.sqrt(dX * dX + dY * dY);
                     if (dist < pl.radius) {
                         this.active = false;
-                        pl.health-=1;
-                        if(pl.health<=0)currentSystem.planets.splice(z, 1);
+                        pl.health -= 1;
+                        if (pl.health <= 0) currentSystem.planets.splice(z, 1);
                     }
                 }
-                    var dX = Math.abs(this.x - currentSystem.x);
-                    var dY = Math.abs(this.y - currentSystem.y);
-                    var dist = Math.sqrt(dX * dX + dY * dY);
-                    if (dist < currentSystem.radius) {
-                        this.active = false;
-                    }
+                var dX = Math.abs(this.x - currentSystem.x);
+                var dY = Math.abs(this.y - currentSystem.y);
+                var dist = Math.sqrt(dX * dX + dY * dY);
+                if (dist < currentSystem.radius) {
+                    this.active = false;
+                }
             }
             this.x += this.speedX;
             this.y += this.speedY;
@@ -161,7 +161,7 @@ class Ship {
         context.lineTo(screenPos.x + xFromDegree(this.direction + 210) * shipSize * GameArea.scale, screenPos.y + yFromDegree(this.direction + 210) * shipSize * GameArea.scale);
         context.fill();
 
-        if(GameArea.scale<0.1){
+        if (GameArea.scale < 0.1) {
             context.shadowBlur = 2;
             context.beginPath();
             context.arc(screenPos.x, screenPos.y, 5, 0, 2 * Math.PI);
@@ -169,6 +169,41 @@ class Ship {
             context.stroke();
         }
         context.shadowBlur = 0;
+    }
+}
+
+class Satellite {
+    constructor(distance, radius, yearLength, degree) {
+        this.distance = distance;
+        this.radius = radius;
+        this.yearLength = yearLength;
+        this.x = 0;
+        this.y = 0;
+        this.degree = degree;
+        this.destroyed = false;
+        this.health = this.radius;
+    }
+
+    update(planetX, planetY, timePassed) {
+        if (this.destroyed == false) {
+            this.degree = this.degree + (360 / this.yearLength) * timePassed;
+            this.x = planetX + xFromDegree(this.degree) * this.distance;
+            this.y = planetY + yFromDegree(this.degree) * this.distance;
+
+            context.beginPath();
+            var screenPos = worldToScreen(this.x, this.y);
+
+            var screenPosPlanet = worldToScreen(planetX, planetY);
+            context.beginPath();
+            context.arc(screenPosPlanet.x, screenPosPlanet.y, this.distance * GameArea.scale, 0, 2 * Math.PI);
+            context.strokeStyle = "#151515";
+            context.stroke();
+
+            context.beginPath();
+            context.arc(screenPos.x, screenPos.y, this.radius * GameArea.scale, 0, 2 * Math.PI, false);
+            context.fillStyle = "#999";
+            context.fill();
+        }
     }
 }
 
@@ -183,6 +218,7 @@ class Planet {
         this.degree = degree;
         this.destroyed = false;
         this.health = this.radius;
+        this.satellites = [];
     }
 
     update(starX, starY, timePassed) {
@@ -204,12 +240,16 @@ class Planet {
             context.arc(screenPos.x, screenPos.y, this.radius * GameArea.scale, 0, 2 * Math.PI, false);
             context.fillStyle = this.planetType;
             context.fill();
+
+            for (var j0 = 0; j0 < this.satellites.length; j0++) {
+                this.satellites[j0].update(this.x, this.y, timePassed);
+            }
         }
     }
 }
 
 class SolarSystem {
-    constructor(x, y, radius, starType, name="", planets = []) {
+    constructor(x, y, radius, starType, name = "", planets = []) {
         this.x = x;
         this.y = y;
         this.discovered = false;
@@ -219,7 +259,7 @@ class SolarSystem {
         this.radius = rand(starTypes[starType].minSize * sunSize, starTypes[starType].maxSize * sunSize);
         this.planets = planets;
         this.name = name;
-        if(this.name == "")this.name = String.fromCharCode(rand(65, 90)) + String.fromCharCode(rand(65, 90)) + "-" + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57));
+        if (this.name == "") this.name = String.fromCharCode(rand(65, 90)) + String.fromCharCode(rand(65, 90)) + "-" + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57));
         if (planets.length == 0) {
             var amount = rand(1, 9);
             for (var k = 0; k < amount; k++) {
@@ -267,23 +307,23 @@ function init() {
     document.body.insertBefore(canvas, document.body.childNodes[0]);
 
     //background
-    for(var i = 0; i< 2000; i++){
+    for (var i = 0; i < 2000; i++) {
         var starArr = [];
-        starArr[0] = rand(0, canvas.width*2)-canvas.width/2;
-        starArr[1] = rand(0, canvas.height)*2-canvas.height/2;
+        starArr[0] = rand(0, canvas.width * 2) - canvas.width / 2;
+        starArr[1] = rand(0, canvas.height) * 2 - canvas.height / 2;
         backgroundStars.push(starArr);
     }
 
 
     plans = [];
-    plans.push(new Planet(300 , 20, "yellow", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(500 , 20, "red", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(700 , 50, "blue", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(900 , 40, "red", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1100 , 80, "brown", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1300 , 70, "orange", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1500 , 40, "brown", rand(20, 60), rand(1, 360)));
-    plans.push(new Planet(1700 , 40, "blue", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(300, 20, "yellow", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(500, 20, "red", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(700, 50, "blue", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(900, 40, "red", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1100, 80, "brown", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1300, 70, "orange", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1500, 40, "brown", rand(20, 60), rand(1, 360)));
+    plans.push(new Planet(1700, 40, "blue", rand(20, 60), rand(1, 360)));
     /*for(var s1 = 0; s1<10; s1++){
         for(var s2 = 0; s2 < 10; s2++){
             systems.push(new SolarSystem(s1*4000, s2*4000, rand(30, 70), "yellow"));
@@ -314,7 +354,7 @@ function init() {
         }
     }
     debug(starCount);
-
+    systems[0].planets[2].satellites.push(new Satellite(70, 2, 10, 0));
     ship = new Ship(0, 0, 0, 0, 180);
     /*systems.push(new SolarSystem(-1200, -3000, 30, "yellow"));
     systems.push(new SolarSystem(2000, 2000, 50, "red"));
@@ -352,8 +392,11 @@ function yFromDegree(degree) {
     return Math.sin(toRadian(degree));
 }
 
-function degreeFromDist(x, y) {
-
+function calculateDistance(a, b) {
+    var dX = Math.abs(a.x - b.x);
+    var dY = Math.abs(a.y - b.y);
+    var dist = Math.sqrt(dX * dX + dY * dY);
+    return dist;
 }
 
 function worldToScreen(x, y) {
@@ -377,8 +420,8 @@ function gameLoop(timeStamp) {
     oldTimeStamp = timeStamp;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = "white";
-    for(var i = 0;i<backgroundStars.length;i++){
-        context.fillRect(backgroundStars[i][0]-(GameArea.x/1000), backgroundStars[i][1]-(GameArea.y/1000), 0.5, 0.5);
+    for (var i = 0; i < backgroundStars.length; i++) {
+        context.fillRect(backgroundStars[i][0] - (GameArea.x / 1000), backgroundStars[i][1] - (GameArea.y / 1000), 0.5, 0.5);
     }
 
     GameArea.x = ship.x;
@@ -489,6 +532,10 @@ function debug(info) {
 }
 
 function checkButtons() {
+    var gpYWasPressed = false;
+    if(gp != undefined){
+        if(gpY)gpYWasPressed = true;
+    }
     gpup = false;
     gpdown = false;
     gpleft = false;
@@ -557,6 +604,15 @@ function checkButtons() {
         lasers.push(las);
     }
 
+    if (gpY && gpYWasPressed == false) {
+        if (currentSystem != null) {
+            for (var i = 0; i < currentSystem.planets.length; i++) {
+                if(calculateDistance(ship, currentSystem.planets[i]) < (currentSystem.planets[i].radius + 50)){
+                    currentSystem.planets[i].satellites.push(new Satellite(currentSystem.planets[i].radius + 20, 2, 5, 0));
+                }
+            }
+        }
+    }
     /*if(GameArea.keys && GameArea.keys[83]){
         ship.speedX += xFromDegree(ship.direction)*-2*secondsPassed;
         ship.speedY += yFromDegree(ship.direction)*-2*secondsPassed;
