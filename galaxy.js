@@ -9,6 +9,7 @@ let systems = [];
 let lasers = [];
 let sunSize = 100;
 let starCount = [0, 0, 0, 0, 0, 0, 0];
+let lastMessage = "";
 let GameArea = {};
 GameArea.x = 0;
 GameArea.y = 0;
@@ -59,7 +60,10 @@ class Laser {
                     if (dist < pl.radius) {
                         this.active = false;
                         pl.health -= 1;
-                        if (pl.health <= 0) currentSystem.planets.splice(z, 1);
+                        if (pl.health <= 0){
+                            lastMessage = currentSystem.name + " " + (z+1) + " destroyed";
+                            currentSystem.planets.splice(z, 1);
+                        }
                     }
                 }
                 var dX = Math.abs(this.x - currentSystem.x);
@@ -468,7 +472,7 @@ function gameLoop(timeStamp) {
     //sol.update();
 
     //showFPS(timeStamp);
-    //showCameraInfo();
+    showCameraInfo();
     systemInfo();
     // Keep requesting new frames
     window.requestAnimationFrame(gameLoop);
@@ -493,20 +497,21 @@ function showFPS(timeStamp) {
 
 function showCameraInfo() {
     context.fillStyle = 'white';
-    context.fillRect(0, 20, 120, 120);
+    //context.fillRect(0, 20, 120, 120);
     context.font = '10px Arial';
-    context.fillStyle = 'black';
-    var systemName = "";
-    if (currentSystem != null) systemName = currentSystem.name;
+    //context.fillStyle = 'black';
+    //var systemName = "";
+    /*if (currentSystem != null) systemName = currentSystem.name;
     context.fillText("System: " + systemName, 10, 30);
-    context.fillText("scale: " + GameArea.scale, 10, 45);
+    context.fillText("scale: " + GameArea.scale, 10, 45);*/
 
 
 
     //context.fillText("Top Left: " + screenToWorld(0, 0).x + ", "+ screenToWorld(0, 0).y, 10, 60);
     //context.fillText("Bottom Right: " + screenToWorld(canvas.width, canvas.height).x + ", "+ screenToWorld(canvas.width, canvas.height).y, 10, 75);
-    context.fillText("Systems drawn: " + systemsDrawn, 10, 90);
-    context.fillText("Speed: " + ship.speed, 10, 105);
+    context.fillText("Systems drawn: " + systemsDrawn, 10, canvas.height-45);
+    context.fillText("Speed: " + ship.speed.toFixed(2), 10, canvas.height-30);
+    context.fillText(lastMessage, 10, canvas.height-15);
 }
 
 function systemInfo() {
