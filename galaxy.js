@@ -8,6 +8,7 @@ let systemsDrawn;
 let systems = [];
 let lasers = [];
 let latinCount = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+let shipLog = [];
 let sunSize = 100;
 let starCount = [0, 0, 0, 0, 0, 0, 0];
 let lastMessage = "";
@@ -62,7 +63,7 @@ class Laser {
                         this.active = false;
                         pl.health -= 1;
                         if (pl.health <= 0){
-                            lastMessage = currentSystem.planets[z].name + " destroyed";
+                            addToLog(currentSystem.planets[z].name + " destroyed");
                             currentSystem.planets.splice(z, 1);
                         }
                     }
@@ -476,6 +477,7 @@ function gameLoop(timeStamp) {
     //showFPS(timeStamp);
     showCameraInfo();
     systemInfo();
+    showLog();
     // Keep requesting new frames
     window.requestAnimationFrame(gameLoop);
 }
@@ -514,6 +516,21 @@ function showCameraInfo() {
     context.fillText("Systems drawn: " + systemsDrawn, 10, canvas.height-45);
     context.fillText("Speed: " + ship.speed.toFixed(2), 10, canvas.height-30);
     context.fillText(lastMessage, 10, canvas.height-15);
+}
+
+function showLog(){
+    var shownMessages = 3;
+    if(shipLog.length<3)shownMessages=shipLog.length;
+    for(var i = 0;i<shownMessages;i++){
+        context.fillStyle = 'white';
+        context.font = '15px Arial';
+        context.fillText(shipLog[i][0].substring(0, Math.floor((totalTime-shipLog[i][1])/100)), canvas.width/2-100, canvas.height-100+i*20);
+        //context.fillText(Math.floor((totalTime-shipLog[i][1])/1000), canvas.width/2-100, canvas.height-100+i*20);
+    }
+}
+
+function addToLog(message){
+    shipLog.unshift([message, totalTime]);
 }
 
 function systemInfo() {
