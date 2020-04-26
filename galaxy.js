@@ -20,6 +20,9 @@ let G = 10;
 let currentSystem = null;
 let previousSystem = null;
 let shipSize = 5;
+let shipEnergy = 100;
+let shipShield = 100;
+let shipCharging = false;
 var gp;
 let canPlaceProbe = true;
 let backgroundStars = [];
@@ -97,13 +100,29 @@ class Ship {
         this.speedY = speedY;
         this.direction = direction;
         this.size = shipSize;
+        this.shield = 100;
+        this.energy = 100;
     }
 
     get speed() {
         return Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
     }
 
+    changeShield(nr){
+        this.shield += nr;
+        if(this.shield > 100)this.shield = 100;
+        if(this.shield < 0)this.shield = 0;
+    }
+
+    changeEnergy(nr){
+        this.energy += nr;
+        if(this.energy > 100)this.energy = 100;
+        if(this.energy < 0)this.energy = 0;
+    }
+
     update(timePassed) {
+        var wasShipCharging = shipCharging;
+        shipCharging = false;
         if (currentSystem != null) {
             for (var z = 0; z < currentSystem.planets.length; z++) {
                 var pl = currentSystem.planets[z];
@@ -111,6 +130,7 @@ class Ship {
                 var dY = Math.abs(this.y - pl.y);
                 var dist = Math.sqrt(dX * dX + dY * dY);
                 if (dist < pl.radius) {
+                    this.changeShield(-10);
                     if (gp != undefined) {
                         gp = navigator.getGamepads();
                         var gamepad = gp[0];
@@ -133,6 +153,7 @@ class Ship {
             var dY = Math.abs(this.y - currentSystem.y);
             var dist = Math.sqrt(dX * dX + dY * dY);
             if (dist < currentSystem.radius) {
+                this.changeShield(-30);
                 if (gp != undefined) {
                     gp = navigator.getGamepads();
                     var gamepad = gp[0];
@@ -149,6 +170,10 @@ class Ship {
                 //this.y += yFromDegree(collisionDirection) * 5;
                 this.speedX = xFromDegree(collisionDirection) * 2;
                 this.speedY = yFromDegree(collisionDirection) * 2;
+            }else if (dist < currentSystem.radius+200) {
+                shipCharging = true;
+                if(wasShipCharging == false)addToLog("Star is recharging ship's batteries");
+                this.changeEnergy(secondsPassed * 5);
             }
         }
         this.x += this.speedX;
@@ -502,17 +527,36 @@ function showFPS(timeStamp) {
 }
 
 function showCameraInfo() {
-    context.fillStyle = 'white';
-    //context.fillRect(0, 20, 120, 120);
-    context.font = '10px Arial';
+    
     //context.fillStyle = 'black';
     //var systemName = "";
     /*if (currentSystem != null) systemName = currentSystem.name;
     context.fillText("System: " + systemName, 10, 30);
     context.fillText("scale: " + GameArea.scale, 10, 45);*/
+    context.fillStyle = '#222';
+    context.fillRect(10, canvas.height-200, 20, 100);
+    context.shadowBlur = 5;
+    context.shadowColor = "lightgreen";
+    context.fillStyle = "lightgreen";
+    var energy = 100;
+    context.fillRect(10, canvas.height-(100+ship.energy), 20, ship.energy);
+    context.font = '10px Arial';
+    context.fillText(Math.floor(ship.energy)+"%", 10, canvas.height-85);
+    context.shadowBlur = 0;
 
+    context.fillStyle = '#222';
+    context.fillRect(40, canvas.height-200, 20, 100);
+    context.shadowBlur = 5;
+    context.shadowColor = "lightblue";
+    context.fillStyle = "lightblue";
+    var energy = 100;
+    context.fillRect(40, canvas.height-(100+ship.shield), 20, ship.shield);
+    context.font = '10px Arial';
+    context.fillText(Math.floor(ship.shield)+"%", 40, canvas.height-85);
+    context.shadowBlur = 0;
 
-
+    context.fillStyle = 'white';
+    context.font = '10px Arial';
     //context.fillText("Top Left: " + screenToWorld(0, 0).x + ", "+ screenToWorld(0, 0).y, 10, 60);
     //context.fillText("Bottom Right: " + screenToWorld(canvas.width, canvas.height).x + ", "+ screenToWorld(canvas.width, canvas.height).y, 10, 75);
     context.fillText("Systems drawn: " + systemsDrawn, 10, canvas.height - 45);
@@ -526,7 +570,7 @@ function showLog() {
     for (var i = 0; i < shownMessages; i++) {
         context.fillStyle = 'white';
         context.font = '15px Arial';
-        context.fillText(shipLog[i][0].substring(0, Math.floor((totalTime - shipLog[i][1]) / 100)), canvas.width / 2 - 100, canvas.height - 100 + i * 20);
+        if(totalTime - shipLog[i][1] < 10000)context.fillText(shipLog[i][0].substring(0, Math.floor((totalTime - shipLog[i][1]) / 50)), canvas.width / 2 - 100, canvas.height - 100 + i * 20);
         //context.fillText(Math.floor((totalTime-shipLog[i][1])/1000), canvas.width/2-100, canvas.height-100+i*20);
     }
 }
@@ -551,7 +595,10 @@ function systemInfo() {
         context.fillText("Number of planets: " + currentSystem.planets.length, 20, 110);
         //context.fillText(totalTime, 20, 130);
         context.font = '10px Arial';
-        context.fillStyle = 'black';
+        context.fillStyle = 'white';
+        for(var i = 0;i<currentSystem.planets.length;i++){
+            context.fillText(currentSystem.planets[i].name, 20, 130+i*15);
+        }
         context.shadowBlur = 0;
     }
 
@@ -643,7 +690,8 @@ function checkButtons() {
     }
     if (GameArea.keys && GameArea.keys[37] || gpleft) ship.direction -= secondsPassed * 90;
     if (GameArea.keys && GameArea.keys[39] || gpright) ship.direction += secondsPassed * 90;
-    if (GameArea.keys && GameArea.keys[38] || gpB) {
+    if ((GameArea.keys && GameArea.keys[38] || gpB) && ship.energy > 0) {
+        ship.changeEnergy(-secondsPassed * 5);
         ship.speedX += xFromDegree(ship.direction) * 5 * secondsPassed;
         ship.speedY += yFromDegree(ship.direction) * 5 * secondsPassed;
     } else {
@@ -654,9 +702,10 @@ function checkButtons() {
             ship.speedY = 0;
         }
     }
-    if ((GameArea.keys && GameArea.keys[32]) || gpA || gpR2) {
+    if (((GameArea.keys && GameArea.keys[32]) || gpA || gpR2) && ship.energy > 0) {
         las = new Laser(ship.x, ship.y, ship.speedX + xFromDegree(ship.direction) * 5, ship.speedY + yFromDegree(ship.direction) * 5);
         lasers.push(las);
+        ship.changeEnergy(-0.1);
     }
 
     if ((GameArea.keys && GameArea.keys[67] && canPlaceProbe) || (gpY && gpYWasPressed == false)) {
