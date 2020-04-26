@@ -21,6 +21,7 @@ let currentSystem = null;
 let previousSystem = null;
 let shipSize = 5;
 var gp;
+let canPlaceProbe = true;
 let backgroundStars = [];
 var colors = ["green", "darkblue", "brown", "orange", "cyan", "purple"];
 var starTypes = [
@@ -62,7 +63,7 @@ class Laser {
                     if (dist < pl.radius) {
                         this.active = false;
                         pl.health -= 1;
-                        if (pl.health <= 0){
+                        if (pl.health <= 0) {
                             addToLog(currentSystem.planets[z].name + " destroyed");
                             currentSystem.planets.splice(z, 1);
                         }
@@ -394,6 +395,7 @@ function init() {
     })
     window.addEventListener('keyup', function (e) {
         GameArea.keys[e.keyCode] = false;
+        if(e.keyCode == 67)canPlaceProbe = true;
     })
     // Start the first frame request
     window.requestAnimationFrame(gameLoop);
@@ -513,23 +515,23 @@ function showCameraInfo() {
 
     //context.fillText("Top Left: " + screenToWorld(0, 0).x + ", "+ screenToWorld(0, 0).y, 10, 60);
     //context.fillText("Bottom Right: " + screenToWorld(canvas.width, canvas.height).x + ", "+ screenToWorld(canvas.width, canvas.height).y, 10, 75);
-    context.fillText("Systems drawn: " + systemsDrawn, 10, canvas.height-45);
-    context.fillText("Speed: " + ship.speed.toFixed(2), 10, canvas.height-30);
-    context.fillText(lastMessage, 10, canvas.height-15);
+    context.fillText("Systems drawn: " + systemsDrawn, 10, canvas.height - 45);
+    context.fillText("Speed: " + ship.speed.toFixed(2), 10, canvas.height - 30);
+    context.fillText(lastMessage, 10, canvas.height - 15);
 }
 
-function showLog(){
+function showLog() {
     var shownMessages = 3;
-    if(shipLog.length<3)shownMessages=shipLog.length;
-    for(var i = 0;i<shownMessages;i++){
+    if (shipLog.length < 3) shownMessages = shipLog.length;
+    for (var i = 0; i < shownMessages; i++) {
         context.fillStyle = 'white';
         context.font = '15px Arial';
-        context.fillText(shipLog[i][0].substring(0, Math.floor((totalTime-shipLog[i][1])/100)), canvas.width/2-100, canvas.height-100+i*20);
+        context.fillText(shipLog[i][0].substring(0, Math.floor((totalTime - shipLog[i][1]) / 100)), canvas.width / 2 - 100, canvas.height - 100 + i * 20);
         //context.fillText(Math.floor((totalTime-shipLog[i][1])/1000), canvas.width/2-100, canvas.height-100+i*20);
     }
 }
 
-function addToLog(message){
+function addToLog(message) {
     shipLog.unshift([message, totalTime]);
 }
 
@@ -552,6 +554,26 @@ function systemInfo() {
         context.fillStyle = 'black';
         context.shadowBlur = 0;
     }
+
+    if (previousSystem == null && currentSystem != null) {
+        if(currentSystem.discovered == false){
+            currentSystem.discovered = true;
+            addToLog("New system discovered: "+currentSystem.name);
+        }
+        debug("new system");
+        if (gp != undefined) {
+            gp = navigator.getGamepads();
+            var gamepad = gp[0];
+            if (gamepad.vibrationActuator) {
+                gamepad.vibrationActuator.playEffect("dual-rumble", {
+                    duration: 300,
+                    strongMagnitude: 1.0,
+                    weakMagnitude: 1.0
+                });
+            }
+        }
+    }
+
 }
 
 function calculateGravity(obj1, obj2) {
@@ -573,10 +595,11 @@ function debug(info) {
 }
 
 function checkButtons() {
-    var gpYWasPressed = false;
+    var cWasPressed = false;
     if (gp != undefined) {
         if (gpY) gpYWasPressed = true;
     }
+
     gpup = false;
     gpdown = false;
     gpleft = false;
@@ -603,35 +626,24 @@ function checkButtons() {
         gpR = gp[0].buttons[5].pressed;
         gpR2 = gp[0].buttons[7].pressed;
 
-        if (previousSystem == null && currentSystem != null) {
-            debug("new system");
-            var gamepad = gp[0];
-            if (gamepad.vibrationActuator) {
-                gamepad.vibrationActuator.playEffect("dual-rumble", {
-                    duration: 300,
-                    strongMagnitude: 1.0,
-                    weakMagnitude: 1.0
-                });
-            }
 
-        }
     }
 
 
 
-    if ((GameArea.keys && GameArea.keys[37])) { GameArea.x -= (2 / GameArea.scale); }
-    if ((GameArea.keys && GameArea.keys[39])) { GameArea.x += (2 / GameArea.scale); }
-    if ((GameArea.keys && GameArea.keys[38]) || gpup) { GameArea.y -= (2 / GameArea.scale); }
-    if ((GameArea.keys && GameArea.keys[40]) || gpdown) { GameArea.y += (2 / GameArea.scale); }
+    //if ((GameArea.keys && GameArea.keys[37])) { GameArea.x -= (2 / GameArea.scale); }
+    //if ((GameArea.keys && GameArea.keys[39])) { GameArea.x += (2 / GameArea.scale); }
+    //if ((GameArea.keys && GameArea.keys[38]) || gpup) { GameArea.y -= (2 / GameArea.scale); }
+    //if ((GameArea.keys && GameArea.keys[40]) || gpdown) { GameArea.y += (2 / GameArea.scale); }
     if ((GameArea.keys && GameArea.keys[88]) || gpL) {
         if (GameArea.scale > 0.001) GameArea.scale *= 0.9;
     }
     if ((GameArea.keys && GameArea.keys[90]) || gpR) {
         if (GameArea.scale < 2) GameArea.scale *= 1.1;
     }
-    if (GameArea.keys && GameArea.keys[65] || gpleft) ship.direction -= secondsPassed * 90;
-    if (GameArea.keys && GameArea.keys[68] || gpright) ship.direction += secondsPassed * 90;
-    if (GameArea.keys && GameArea.keys[87] || gpB) {
+    if (GameArea.keys && GameArea.keys[37] || gpleft) ship.direction -= secondsPassed * 90;
+    if (GameArea.keys && GameArea.keys[39] || gpright) ship.direction += secondsPassed * 90;
+    if (GameArea.keys && GameArea.keys[38] || gpB) {
         ship.speedX += xFromDegree(ship.direction) * 5 * secondsPassed;
         ship.speedY += yFromDegree(ship.direction) * 5 * secondsPassed;
     } else {
@@ -642,12 +654,13 @@ function checkButtons() {
             ship.speedY = 0;
         }
     }
-    if (gpA || gpR2) {
+    if ((GameArea.keys && GameArea.keys[32]) || gpA || gpR2) {
         las = new Laser(ship.x, ship.y, ship.speedX + xFromDegree(ship.direction) * 5, ship.speedY + yFromDegree(ship.direction) * 5);
         lasers.push(las);
     }
 
-    if (gpY && gpYWasPressed == false) {
+    if ((GameArea.keys && GameArea.keys[67] && canPlaceProbe) || (gpY && gpYWasPressed == false)) {
+        canPlaceProbe = false;
         if (currentSystem != null) {
             for (var i = 0; i < currentSystem.planets.length; i++) {
                 if (calculateDistance(ship, currentSystem.planets[i]) < (currentSystem.planets[i].radius + 50)) {
