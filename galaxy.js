@@ -290,6 +290,16 @@ class Planet {
             context.arc(screenPos.x, screenPos.y, this.radius * GameArea.scale, 0, 2 * Math.PI, false);
             context.fillStyle = this.planetType;
             context.fill();
+            if(this.name == "Earth"){
+                var image = new Image();
+                image.src = "planet21.png";
+                context.drawImage(image, screenPos.x-this.radius*GameArea.scale, screenPos.y-this.radius*GameArea.scale, this.radius*2*GameArea.scale, this.radius * 2*GameArea.scale);
+            }
+            if(this.name == "Mars"){
+                var image = new Image();
+                image.src = "planet02.png";
+                context.drawImage(image, screenPos.x-this.radius*GameArea.scale, screenPos.y-this.radius*GameArea.scale, this.radius*2*GameArea.scale, this.radius * 2*GameArea.scale);
+            }
 
             for (var j0 = 0; j0 < this.satellites.length; j0++) {
                 this.satellites[j0].update(this.x, this.y, timePassed);
