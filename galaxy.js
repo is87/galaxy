@@ -16,7 +16,7 @@ let GameArea = {};
 GameArea.x = 0;
 GameArea.y = 0;
 GameArea.scale = 1;
-let G = 10;
+let G = 2;
 let currentSystem = null;
 let previousSystem = null;
 let shipSize = 5;
@@ -581,9 +581,9 @@ function addToLog(message) {
 
 function systemInfo() {
     if (currentSystem != null) {
-        //grav = calculateGravity(ship, currentSystem);
-        //ship.speedX += grav[0];
-        //ship.speedY += grav[1];
+        grav = calculateGravity(ship, currentSystem);
+        ship.speedX += grav[0];
+        ship.speedY += grav[1];
         context.shadowBlur = 5;
         context.shadowColor = starTypes[currentSystem.starType].color;
         context.font = '40px Arial';
@@ -642,7 +642,7 @@ function debug(info) {
 }
 
 function checkButtons() {
-    var cWasPressed = false;
+    var gpYWasPressed = false;
     if (gp != undefined) {
         if (gpY) gpYWasPressed = true;
     }
