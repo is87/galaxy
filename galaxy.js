@@ -3,6 +3,7 @@ let context;
 let secondsPassed;
 let oldTimeStamp;
 let totalTime = 0;
+let gameTime = 0;
 let fps;
 let systemsDrawn;
 let systems = [];
@@ -25,6 +26,10 @@ let shipShield = 100;
 let shipCharging = false;
 var gp;
 let canPlaceProbe = true;
+let enterPressed = false;
+let downPressed = false;
+let upPressed = false;
+let loadedPercent = 0;
 let backgroundStars = [];
 var colors = ["green", "darkblue", "brown", "orange", "cyan", "purple"];
 var starTypes = [
@@ -40,6 +45,9 @@ let earthImage = new Image();
 earthImage.src = "planet21.png";
 let marsImage = new Image();
 marsImage.src = "planet02.png";
+let gameState = "loading";
+let menuOptions = ["CONTINUE", "SAVE GAME", "LOAD GAME", "SETTINGS"];
+let selectedOption = 0;
 
 window.addEventListener("gamepadconnected", function (e) {
     gp = navigator.getGamepads()[e.gamepad.index];
@@ -49,349 +57,53 @@ window.addEventListener("gamepadconnected", function (e) {
     console.log(gp.buttons[12].pressed);
 });
 
-class Laser {
-    constructor(x, y, speedX, speedY) {
-        this.x = x;
-        this.y = y;
-        this.speedX = speedX;
-        this.speedY = speedY;
-        this.created = totalTime;
-        this.active = true;
-    }
+function loadImage(src, callback) {
+    var img = document.createElement('img');
+    img.addEventListener('load', function() { callback(img); } , false);
+    img.src = src;
+  }
 
-    update(timePassed) {
-        if (this.active) {
-            if (currentSystem != null) {
-                for (var z = 0; z < currentSystem.planets.length; z++) {
-                    var pl = currentSystem.planets[z];
-                    var dX = Math.abs(this.x - pl.x);
-                    var dY = Math.abs(this.y - pl.y);
-                    var dist = Math.sqrt(dX * dX + dY * dY);
-                    if (dist < pl.radius) {
-                        this.active = false;
-                        pl.health -= 1;
-                        if (pl.health <= 0) {
-                            addToLog(currentSystem.planets[z].name + " destroyed");
-                            currentSystem.planets.splice(z, 1);
-                        }
-                    }
-                }
-                var dX = Math.abs(this.x - currentSystem.x);
-                var dY = Math.abs(this.y - currentSystem.y);
-                var dist = Math.sqrt(dX * dX + dY * dY);
-                if (dist < currentSystem.radius) {
-                    this.active = false;
-                }
-            }
-            this.x += this.speedX;
-            this.y += this.speedY;
 
-            var screenPos = worldToScreen(this.x, this.y);
 
-            context.beginPath();
-            context.fillStyle = "#f00";
-            context.fillRect(screenPos.x - 1 * GameArea.scale, screenPos.y - 1 * GameArea.scale, 2 * GameArea.scale, 2 * GameArea.scale);
-            if ((totalTime - this.created) > 2000) lasers.shift();
-        }
-    }
-}
 
-class Ship {
-    constructor(x = 0, y = 0, speedX = 0, speedY, direction = 0) {
-        this.x = x;
-        this.y = y;
-        this.speedX = speedX;
-        this.speedY = speedY;
-        this.direction = direction;
-        this.size = shipSize;
-        this.shield = 100;
-        this.energy = 100;
-    }
-
-    get speed() {
-        return Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
-    }
-
-    changeShield(nr) {
-        this.shield += nr;
-        if (this.shield > 100) this.shield = 100;
-        if (this.shield < 0) this.shield = 0;
-    }
-
-    changeEnergy(nr) {
-        this.energy += nr;
-        if (this.energy > 100) this.energy = 100;
-        if (this.energy < 0) this.energy = 0;
-    }
-
-    update(timePassed) {
-        var wasShipCharging = shipCharging;
-        shipCharging = false;
-        if (currentSystem != null) {
-            for (var z = 0; z < currentSystem.planets.length; z++) {
-                var pl = currentSystem.planets[z];
-                var dX = Math.abs(this.x - pl.x);
-                var dY = Math.abs(this.y - pl.y);
-                var dist = Math.sqrt(dX * dX + dY * dY);
-                if (dist < pl.radius) {
-                    this.changeShield(-10);
-                    if (gp != undefined) {
-                        gp = navigator.getGamepads();
-                        var gamepad = gp[0];
-                        if (gamepad.vibrationActuator) {
-                            gamepad.vibrationActuator.playEffect("dual-rumble", {
-                                duration: 500,
-                                strongMagnitude: 1.0,
-                                weakMagnitude: 0
-                            });
-                        }
-                    }
-                    var collisionDirection = Math.atan2(this.y - pl.y, this.x - pl.x) * 180 / Math.PI;
-                    this.x += xFromDegree(collisionDirection) * 5;
-                    this.y += yFromDegree(collisionDirection) * 5;
-                    this.speedX = xFromDegree(collisionDirection) * 2;
-                    this.speedY = yFromDegree(collisionDirection) * 2;
-                }
-            }
-            var dX = Math.abs(this.x - currentSystem.x);
-            var dY = Math.abs(this.y - currentSystem.y);
-            var dist = Math.sqrt(dX * dX + dY * dY);
-            if (dist < currentSystem.radius) {
-                this.changeShield(-30);
-                if (gp != undefined) {
-                    gp = navigator.getGamepads();
-                    var gamepad = gp[0];
-                    if (gamepad.vibrationActuator) {
-                        gamepad.vibrationActuator.playEffect("dual-rumble", {
-                            duration: 1500,
-                            strongMagnitude: 1.0,
-                            weakMagnitude: 0
-                        });
-                    }
-                }
-                var collisionDirection = Math.atan2(this.y - currentSystem.y, this.x - currentSystem.x) * 180 / Math.PI;
-                //this.x += xFromDegree(collisionDirection) * 5;
-                //this.y += yFromDegree(collisionDirection) * 5;
-                this.speedX = xFromDegree(collisionDirection) * 2;
-                this.speedY = yFromDegree(collisionDirection) * 2;
-            } else if (dist < currentSystem.radius + 200) {
-                shipCharging = true;
-                if (wasShipCharging == false) addToLog("Star is recharging ship's batteries");
-                this.changeEnergy(secondsPassed * 5);
-            }
-        }
-        this.x += this.speedX;
-        this.y += this.speedY;
-
-        var screenPos = worldToScreen(this.x, this.y);
-
-        //context.translate(screenPos.x, screenPos.y);
-        //context.rotate(toRadian(this.direction));
-        //context.translate(-screenPos.x, -screenPos.y);
-        context.shadowBlur = 5 * GameArea.scale;
-        context.shadowColor = "lightblue";
-        context.beginPath();
-        context.fillStyle = "#ccc";
-        context.moveTo(screenPos.x + xFromDegree(this.direction + 0) * shipSize * GameArea.scale, screenPos.y + yFromDegree(this.direction + 0) * shipSize * GameArea.scale);
-        context.lineTo(screenPos.x + xFromDegree(this.direction + 150) * shipSize * GameArea.scale, screenPos.y + yFromDegree(this.direction + 150) * shipSize * GameArea.scale);
-        context.lineTo(screenPos.x + xFromDegree(this.direction + 210) * shipSize * GameArea.scale, screenPos.y + yFromDegree(this.direction + 210) * shipSize * GameArea.scale);
-        context.fill();
-
-        if (GameArea.scale < 0.3) {
-            context.shadowBlur = 2;
-            context.beginPath();
-            //context.arc(screenPos.x, screenPos.y, 5, 0, 2 * Math.PI);
-            context.moveTo(screenPos.x + xFromDegree(this.direction + 0) * 5, screenPos.y + yFromDegree(this.direction + 0) * 5);
-            context.lineTo(screenPos.x + xFromDegree(this.direction + 150) * 5, screenPos.y + yFromDegree(this.direction + 150) * 5);
-            context.lineTo(screenPos.x + xFromDegree(this.direction + 210) * 5, screenPos.y + yFromDegree(this.direction + 210) * 5);
-            context.lineTo(screenPos.x + xFromDegree(this.direction + 0) * 5, screenPos.y + yFromDegree(this.direction + 0) * 5);
-            context.strokeStyle = "lightblue";
-            context.stroke();
-        }
-        context.shadowBlur = 0;
-    }
-}
-
-class Satellite {
-    constructor(distance, radius, yearLength, degree) {
-        this.distance = distance;
-        this.radius = radius;
-        this.yearLength = yearLength;
-        this.x = 0;
-        this.y = 0;
-        this.degree = degree;
-        this.destroyed = false;
-        this.health = this.radius;
-    }
-
-    update(planetX, planetY, timePassed) {
-        if (this.destroyed == false) {
-            this.degree = this.degree + (360 / this.yearLength) * timePassed;
-            this.x = planetX + xFromDegree(this.degree) * this.distance;
-            this.y = planetY + yFromDegree(this.degree) * this.distance;
-
-            context.beginPath();
-            var screenPos = worldToScreen(this.x, this.y);
-
-            var screenPosPlanet = worldToScreen(planetX, planetY);
-            context.beginPath();
-            context.arc(screenPosPlanet.x, screenPosPlanet.y, this.distance * GameArea.scale, 0, 2 * Math.PI);
-            context.strokeStyle = "#151515";
-            context.stroke();
-
-            context.beginPath();
-            context.arc(screenPos.x, screenPos.y, this.radius * GameArea.scale, 0, 2 * Math.PI, false);
-            context.fillStyle = "#999";
-            context.fill();
-        }
-    }
-}
-
-class Planet {
-    constructor(distance, radius, planetType, yearLength, degree, name = "") {
-        this.distance = distance;
-        this.radius = radius;
-        this.planetType = planetType;
-        this.yearLength = yearLength;
-        this.x = 0;
-        this.y = 0;
-        this.degree = degree;
-        this.spin = 0;
-        this.name = name;
-        this.destroyed = false;
-        this.health = this.radius;
-        this.satellites = [];
-        this.shield = false;
-        var hasShield = rand(1, 10);
-        if (hasShield == 10) this.shield = true;
-    }
-
-    update(starX, starY, timePassed) {
-        if (this.destroyed == false) {
-            this.degree = this.degree + (360 / this.yearLength) * timePassed;
-            this.x = starX + xFromDegree(this.degree) * this.distance;
-            this.y = starY + yFromDegree(this.degree) * this.distance;
-
-            this.spin = this.spin + (360 / 5) * timePassed;
-
-            context.beginPath();
-            var screenPos = worldToScreen(this.x, this.y);
-
-            var screenPosStar = worldToScreen(starX, starY);
-            context.beginPath();
-            context.arc(screenPosStar.x, screenPosStar.y, this.distance * GameArea.scale, 0, 2 * Math.PI);
-            context.strokeStyle = "#222";
-            context.stroke();
-
-            if (this.shield) {
-                context.shadowBlur = 5 * GameArea.scale;
-                context.shadowColor = "lightblue";
-                context.beginPath();
-                context.arc(screenPos.x, screenPos.y, (this.radius + 10) * GameArea.scale, 0, 2 * Math.PI);
-                context.strokeStyle = "lightblue";
-                context.stroke();
-                context.shadowBlur = 0;
-            }
-
-            
-            if (this.name == "Earth") {
-                context.save();
-                context.translate(screenPos.x, screenPos.y);
-                context.rotate(this.spin * Math.PI / 180);
-                context.drawImage(earthImage, - (this.radius * GameArea.scale), - (this.radius * GameArea.scale), (this.radius * GameArea.scale) * 2, (this.radius * GameArea.scale) * 2);
-                context.restore();
-
-                var my_gradient = context.createLinearGradient(screenPos.x+xFromDegree(this.degree) * (this.radius * GameArea.scale), screenPos.y+yFromDegree(this.degree) * (this.radius * GameArea.scale), screenPos.x-xFromDegree(this.degree) * (this.radius * GameArea.scale), screenPos.y-yFromDegree(this.degree) * (this.radius * GameArea.scale));
-                my_gradient.addColorStop(0.0, "#000000ff");
-                my_gradient.addColorStop(0.8, "#00000000");
-                context.beginPath();
-                context.arc(screenPos.x, screenPos.y, (this.radius * GameArea.scale)-1, 0, 2 * Math.PI, false);
-                context.fillStyle = my_gradient;
-                context.fill();
-                //context.drawImage(image, screenPos.x - this.radius * GameArea.scale, screenPos.y - this.radius * GameArea.scale, this.radius * 2 * GameArea.scale, this.radius * 2 * GameArea.scale);
-            }
-            else if (this.name == "Mars") {
-                context.save();
-                context.translate(screenPos.x, screenPos.y);
-                context.rotate(this.spin * Math.PI / 180);
-                context.drawImage(marsImage, - (this.radius * GameArea.scale), - (this.radius * GameArea.scale), (this.radius * GameArea.scale) * 2, (this.radius * GameArea.scale) * 2);
-                context.restore();
-
-                var my_gradient = context.createLinearGradient(screenPos.x+xFromDegree(this.degree) * (this.radius * GameArea.scale), screenPos.y+yFromDegree(this.degree) * (this.radius * GameArea.scale), screenPos.x-xFromDegree(this.degree) * (this.radius * GameArea.scale), screenPos.y-yFromDegree(this.degree) * (this.radius * GameArea.scale));
-                my_gradient.addColorStop(0.0, "#000000ff");
-                my_gradient.addColorStop(0.8, "#00000000");
-                context.beginPath();
-                context.arc(screenPos.x, screenPos.y, (this.radius * GameArea.scale)-1, 0, 2 * Math.PI, false);
-                context.fillStyle = my_gradient;
-                context.fill();
-                //context.drawImage(image, screenPos.x - this.radius * GameArea.scale, screenPos.y - this.radius * GameArea.scale, this.radius * 2 * GameArea.scale, this.radius * 2 * GameArea.scale);
-            }else{
-                
-                context.beginPath();
-            context.arc(screenPos.x, screenPos.y, this.radius * GameArea.scale, 0, 2 * Math.PI, false);
-            context.fillStyle = this.planetType;
-            context.fill(); 
-            }
-
-            for (var j0 = 0; j0 < this.satellites.length; j0++) {
-                this.satellites[j0].update(this.x, this.y, timePassed);
-            }
-        }
-    }
-}
-
-class SolarSystem {
-    constructor(x, y, radius, starType, name = "", planets = []) {
-        this.x = x;
-        this.y = y;
-        this.discovered = false;
-        //this.radius = radius;
-        this.starType = starType;
-        starCount[starType]++;
-        this.radius = rand(starTypes[starType].minSize * sunSize, starTypes[starType].maxSize * sunSize);
-        this.planets = planets;
-        this.name = name;
-        if (this.name == "") this.name = String.fromCharCode(rand(65, 90)) + String.fromCharCode(rand(65, 90)) + "-" + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57)) + String.fromCharCode(rand(48, 57));
-        if (planets.length == 0) {
-            var amount = rand(1, 9);
-            for (var k = 0; k < amount; k++) {
-                planets.push(new Planet(200 * (k + 1) + this.radius, rand(10, 50), colors[rand(0, 5)], rand(20, 60), rand(1, 360), this.name + " " + latinCount[k]));
-            }
-        }
-    }
-
-    get area() {
-        return this.calcArea();
-    }
-
-    get size() {
-        return this.radius;
-    }
-
-    calcArea() {
-        return this.radius * this.radius * Math.PI;
-    }
-
-    update(timePassed) {
-        var screenPos = worldToScreen(this.x, this.y);
-        context.beginPath();
-        context.arc(screenPos.x, screenPos.y, this.radius * GameArea.scale, 0, 2 * Math.PI, false);
-        context.fillStyle = starTypes[this.starType].color;
-        context.shadowBlur = 50 * GameArea.scale;
-        context.shadowColor = starTypes[this.starType].color;
-        context.fill();
-        context.shadowBlur = 0;
-        if (GameArea.scale > 0.02) {
-            for (var j = 0; j < this.planets.length; j++) {
-                this.planets[j].update(this.x, this.y, timePassed);
-            }
-        }
-    }
-}
 
 window.onload = init;
 
 function init() {
+    menucanvas = document.createElement("canvas");
+    menucanvas.width = 500;
+    menucanvas.height = 300;
+    menucanvas.style.backgroundColor = "#00000000";
+    menucontext = menucanvas.getContext("2d");
+    document.getElementById("overlay").insertBefore(menucanvas, document.getElementById("overlay").childNodes[0]);
+    loadImage("splash.jpg", loadingLoop);
+    
+    //var splashImage = new Image();
+    //splashImage.src = "splash.jpg";
+    //menucontext.drawImage(splashImage, 10, 15);
+    //setTimeout(startGame, 3000);
+}
+
+function loadingLoop(){
+    menucontext.clearRect(0,0,500,300);
+    loadedPercent+=2;
+    var splashImage = new Image();
+    splashImage.src = "splash.jpg";
+    menucontext.drawImage(splashImage, 10, 15, 480, 270);
+    menucontext.shadowBlur = 5;
+    menucontext.shadowColor = "purple";
+    menucontext.fillStyle = "purple";
+    menucontext.fillRect(10, 285, 4.8*loadedPercent, 10);
+    if(loadedPercent<100){
+        setTimeout(loadingLoop, 50);
+    }else{
+        startGame();
+    }
+}
+
+function startGame() {
+    gameState = "playing";
+    document.getElementById("overlay").style.visibility = "hidden";
     canvas = document.createElement("canvas");
     canvas.width = window.innerWidth - 30;
     canvas.height = window.innerHeight - 30;
@@ -463,9 +175,45 @@ function init() {
     window.addEventListener('keyup', function (e) {
         GameArea.keys[e.keyCode] = false;
         if (e.keyCode == 67) canPlaceProbe = true;
+        if (e.keyCode == 13) enterPressed = false;
+        if(e.keyCode == 38 && gameState == "paused")upPressed = false;
+        if(e.keyCode == 40 && gameState == "paused")downPressed = false;
     })
     // Start the first frame request
     window.requestAnimationFrame(gameLoop);
+}
+
+function drawMenu() {
+    menucontext.clearRect(0,0,500,300);
+    menucontext.shadowBlur = 10;
+    menucontext.font = "20px Arial";
+    menucontext.textAlign = "center";
+
+    menucontext.strokeStyle = "lightblue";
+    menucontext.shadowColor = "lightblue";
+    menucontext.fillStyle = "lightblue";
+    menucontext.beginPath();
+    menucontext.rect(25, 25, 450, 250);
+    menucontext.stroke();
+
+    for (var i = 0; i < menuOptions.length; i++) {
+        if (i == selectedOption) {
+            menucontext.strokeStyle = "lightblue";
+            menucontext.shadowColor = "lightblue";
+            menucontext.fillStyle = "lightblue";
+        } else {
+            menucontext.strokeStyle = "gray";
+            menucontext.shadowColor = "gray";
+            menucontext.fillStyle = "gray";
+        }
+
+        menucontext.beginPath();
+        menucontext.rect(150, 50+i*50, 200, 40);
+        menucontext.stroke();
+
+        menucontext.fillText(menuOptions[i], 250, 77+i*50);
+    }
+    menucontext.shadowBlur = 0;
 }
 
 function rand(min, max) {
@@ -483,6 +231,10 @@ function xFromDegree(degree) {
 
 function yFromDegree(degree) {
     return Math.sin(toRadian(degree));
+}
+
+function degreeFromDelta(dx, dy) {
+    return Math.atan2(dy, dx) * 180 / Math.PI;
 }
 
 function calculateDistance(a, b) {
@@ -506,11 +258,13 @@ function screenToWorld(x, y) {
     return coors;
 }
 
-function gameLoop(timeStamp) {
-    totalTime = timeStamp;
-    secondsPassed = (timeStamp - oldTimeStamp) / 1000;
-    if (isNaN(secondsPassed)) secondsPassed = 0;
-    oldTimeStamp = timeStamp;
+function pausedLoop(){
+    checkMenuButtons();
+    drawMenu();
+}
+
+function playingLoop(){
+    gameTime += secondsPassed;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = "white";
     for (var i = 0; i < backgroundStars.length; i++) {
@@ -519,12 +273,6 @@ function gameLoop(timeStamp) {
 
     GameArea.x = ship.x;
     GameArea.y = ship.y;
-    //if(Math.sqrt(ship.speedX*ship.speedX+ship.speedY*ship.speedY) > 10) GameArea.scale = 0.4;
-    //GameArea.scale = 1/Math.sqrt(ship.speedX*ship.speedX+ship.speedY*ship.speedY+1);
-    /*if(Math.sqrt(ship.speedX*ship.speedX+ship.speedY*ship.speedY) < 10)GameArea.scale = 0.25;
-    if(Math.sqrt(ship.speedX*ship.speedX+ship.speedY*ship.speedY) > 20)GameArea.scale = 0.1;
-    if(Math.sqrt(ship.speedX*ship.speedX+ship.speedY*ship.speedY) > 40)GameArea.scale = 0.3;*/
-    //draw();
     checkButtons();
     systemsDrawn = 0;
     previousSystem = currentSystem;
@@ -537,16 +285,22 @@ function gameLoop(timeStamp) {
         }
 
     }
-    ship.update();
+    ship.update(secondsPassed);
     for (i = 0; i < lasers.length; i++) {
         lasers[i].update(secondsPassed);
     }
-    //sol.update();
-
-    //showFPS(timeStamp);
     showCameraInfo();
     systemInfo();
     showLog();
+}
+
+function gameLoop(timeStamp) {
+    totalTime = timeStamp;
+    secondsPassed = (timeStamp - oldTimeStamp) / 1000;
+    if (isNaN(secondsPassed)) secondsPassed = 0;
+    oldTimeStamp = timeStamp;
+    if(gameState=="playing")playingLoop();
+    if(gameState=="paused")pausedLoop();
     // Keep requesting new frames
     window.requestAnimationFrame(gameLoop);
 }
@@ -612,13 +366,13 @@ function showLog() {
     for (var i = 0; i < shownMessages; i++) {
         context.fillStyle = 'white';
         context.font = '15px Arial';
-        if (totalTime - shipLog[i][1] < 10000) context.fillText(shipLog[i][0].substring(0, Math.floor((totalTime - shipLog[i][1]) / 50)), canvas.width / 2 - 100, canvas.height - 100 + i * 20);
+        if (gameTime - shipLog[i][1] < 10) context.fillText(shipLog[i][0].substring(0, Math.floor((gameTime - shipLog[i][1]) * 20)), canvas.width / 2 - 100, canvas.height - 100 + i * 20);
         //context.fillText(Math.floor((totalTime-shipLog[i][1])/1000), canvas.width/2-100, canvas.height-100+i*20);
     }
 }
 
 function addToLog(message) {
-    shipLog.unshift([message, totalTime]);
+    shipLog.unshift([message, gameTime]);
 }
 
 function systemInfo() {
@@ -681,6 +435,34 @@ function calculateGravity(obj1, obj2) {
 
 function debug(info) {
     console.log(info);
+}
+
+function checkMenuButtons(){
+    gpup = false;
+    gpdown = false;
+
+    if (gp != undefined) {
+        gp = navigator.getGamepads();
+        gpup = gp[0].buttons[12].pressed;
+        gpdown = gp[0].buttons[13].pressed;
+    }
+
+    if ((GameArea.keys && GameArea.keys[38] && !upPressed || gpup)) {
+        selectedOption--;
+        upPressed = true;
+    }
+    if ((GameArea.keys && GameArea.keys[40] && !downPressed || gpdown)) {
+        selectedOption++;
+        downPressed = true;
+    }
+    if(selectedOption<0)selectedOption=0;
+    if(selectedOption>=menuOptions.length)selectedOption=menuOptions.length-1;
+
+    if (GameArea.keys && GameArea.keys[13] && !enterPressed && selectedOption==0) {
+        gameState = "playing";
+        document.getElementById("overlay").style.visibility = "hidden";
+        enterPressed = true;
+    }
 }
 
 function checkButtons() {
@@ -754,11 +536,37 @@ function checkButtons() {
         canPlaceProbe = false;
         if (currentSystem != null) {
             for (var i = 0; i < currentSystem.planets.length; i++) {
-                if (calculateDistance(ship, currentSystem.planets[i]) < (currentSystem.planets[i].radius + 50)) {
+                if (calculateDistance(ship, currentSystem.planets[i]) < (currentSystem.planets[i].radius + 100)) {
                     currentSystem.planets[i].satellites.push(new Satellite(currentSystem.planets[i].radius + 20, 2, 5, 0));
+                    addToLog("Placed probe in orbit around " + currentSystem.planets[i].name);
                 }
             }
         }
+    }
+
+    if (GameArea.keys && GameArea.keys[86]) {
+        if (currentSystem != null) {
+            for (var i = 0; i < currentSystem.planets.length; i++) {
+                if (calculateDistance(ship, currentSystem.planets[i]) < (currentSystem.planets[i].radius + 100)) {
+                    addToLog("Initiating orbit around " + currentSystem.planets[i].name);
+                    ship.orbit.target = currentSystem.planets[i];
+                    ship.orbit.distance = 50;
+                    ship.orbit.degree = 0;
+                    ship.orbit.revolution = 5;
+                }
+            }
+        }
+    }
+
+    if (GameArea.keys && GameArea.keys[13] && !enterPressed && gameState == "playing") {
+        gameState = "paused";
+        document.getElementById("overlay").style.visibility = "visible";
+        enterPressed = true;
+    }
+    if (GameArea.keys && GameArea.keys[13] && !enterPressed && gameState == "paused") {
+        gameState = "playing";
+        document.getElementById("overlay").style.visibility = "hidden";
+        enterPressed = true;
     }
     /*if(GameArea.keys && GameArea.keys[83]){
         ship.speedX += xFromDegree(ship.direction)*-2*secondsPassed;

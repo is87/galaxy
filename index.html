@@ -11,11 +11,57 @@
             margin: auto;
             display: block;
         }
+
+        #overlay {
+            position: fixed;
+            top:0;
+            bottom:0;
+            left:0;
+            right:0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #111111cc;
+        }
+
+        #menuBox {
+            width: 400px;
+            height: 200px;
+            /*background-color: #333333;*/
+            border: 2px solid rgba(173, 216, 230, .5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .menuOption{
+            width: 300px;
+            border: 2px solid rgba(173, 216, 230, .5);
+            text-align: center;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+            padding: 10px;
+            margin: 10px;
+        } 
     </style>
+    <script src="Laser.js"></script>
+    <script src="Ship.js"></script>
+    <script src="Satellite.js"></script>
+    <script src="Planet.js"></script>
+    <script src="SolarSystem.js"></script>
     <script src="galaxy.js"></script>
 </head>
 
-<body style="background-color: #333333">
+<body style="background-color: #111111">
     <!--<canvas id="canvas"></canvas>-->
+    <div id="overlay">
+        <!--<img id="splash" src="splash.jpg" width="480" height="270" />-->
+        <!--<div id="menuBox">
+            <div class="menuOption">NEW GAME</div>
+            <div class="menuOption">LOAD GAME</div>
+            <div class="menuOption">SETTINGS</div>
+        </div>-->
+    </div>
 </body>
+
 </html>
